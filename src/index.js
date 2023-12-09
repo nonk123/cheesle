@@ -1,5 +1,7 @@
 "use strict"
 
+const sessionId = document.getElementById("sessionId").value;
+
 const word = "CHEEZ";
 const letters = document.getElementsByClassName("letter");
 
@@ -104,6 +106,9 @@ function mergeLetterInputFields() {
 }
 
 function init() {
+    document.getElementById("status").textContent = "Session: " + sessionId;
     mergeLetterInputFields();
     letters[0].focus();
 }
+
+init();

@@ -2,8 +2,12 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-
     const optimize = b.standardOptimizeOption(.{});
+
+    const uuid = b.anonymousDependency("external/zig-uuid", @import("external/zig-uuid/build.zig"), .{
+        .target = target,
+        .optimize = optimize,
+    });
 
     const exe = b.addExecutable(.{
         .name = "cheesle-backend",
@@ -11,6 +15,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    exe.addModule("uuid", uuid.module("uuid"));
 
     b.installArtifact(exe);
 

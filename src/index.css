@@ -99,3 +99,7 @@ input.letter {
     text-align: center;
     border-radius: 5px;
 }
+
+input#sessionId {
+    display: none;
+}

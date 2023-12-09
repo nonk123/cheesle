@@ -1,4 +1,5 @@
 const std = @import("std");
+const uuid = @import("uuid");
 
 const CheesleError = error{
     ArgsMismatch,
@@ -85,7 +86,7 @@ const FileRoute = struct {
         // Strip the leading slash to avoid looking into the filesystem root.
         const contents = @embedFile(target[1..]);
 
-        return .{
+        return FileRoute{
             .target = target,
             .mimeType = mimeType,
             .contents = contents,
@@ -104,9 +105,21 @@ fn sendFile(response: *std.http.Server.Response, mimeType: []const u8, contents:
     try response.finish();
 }
 
-fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocator) !void {
-    _ = allocator; // TODO: use
+const Session = struct {
+    id: uuid.UUID,
+    word: []const u8, // ASCII only for now
+    attemptsLeft: u8,
 
+    fn new() Session {
+        return Session{
+            .id = uuid.UUID.init(),
+            .word = "CHEEZ",
+            .attemptsLeft = 5,
+        };
+    }
+};
+
+fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocator) !void {
     if (response.request.headers.contains("connection")) {
         try response.headers.append("connection", "keep-alive");
     }
@@ -121,8 +134,21 @@ fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocat
     const target = response.request.target;
 
     if (std.mem.eql(u8, target, "/")) {
+        const session = Session.new();
+
+        const needle = "{%%%}";
+        const replacement = try std.fmt.allocPrint(allocator, "{}", .{session.id});
+
         const index = @embedFile("index.html");
-        try sendFile(response, "text/html", index);
+
+        var buf = try allocator.alloc(u8, index.len + 1024);
+        defer allocator.free(buf);
+
+        const count = std.mem.replace(u8, index, needle, replacement, buf);
+
+        const end = index.len - needle.len + count * replacement.len;
+        try sendFile(response, "text/html", buf[0..end]);
+
         return;
     }
 
