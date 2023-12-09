@@ -54,7 +54,12 @@ fn printUsage(args: Args) void {
 fn runServer(server: *std.http.Server, allocator: std.mem.Allocator) !void {
     const log = std.io.getStdErr().writer();
 
+    var sessions = std.ArrayList(Session).init(allocator);
+    defer sessions.deinit();
+
     while (true) {
+        pruneSessions(&sessions);
+
         var response = try server.accept(.{
             .allocator = allocator,
         });
@@ -68,7 +73,7 @@ fn runServer(server: *std.http.Server, allocator: std.mem.Allocator) !void {
                 else => return err,
             };
 
-            handleRequest(&response, allocator) catch |err| {
+            handleRequest(&response, &sessions, allocator) catch |err| {
                 log.print("Server error: {}\n", .{err}) catch {};
             };
         }
@@ -109,17 +114,19 @@ const Session = struct {
     id: uuid.UUID,
     word: []const u8, // ASCII only for now
     attemptsLeft: u8,
+    creationTime: i64,
 
     fn new() Session {
         return Session{
             .id = uuid.UUID.init(),
             .word = "CHEEZ",
             .attemptsLeft = 5,
+            .creationTime = std.time.timestamp(),
         };
     }
 };
 
-fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocator) !void {
+fn handleRequest(response: *std.http.Server.Response, sessions: *std.ArrayList(Session), allocator: std.mem.Allocator) !void {
     if (response.request.headers.contains("connection")) {
         try response.headers.append("connection", "keep-alive");
     }
@@ -135,6 +142,7 @@ fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocat
 
     if (std.mem.eql(u8, target, "/")) {
         const session = Session.new();
+        (try sessions.addOne()).* = session;
 
         const needle = "{%%%}";
         const replacement = try std.fmt.allocPrint(allocator, "{}", .{session.id});
@@ -168,4 +176,21 @@ fn handleRequest(response: *std.http.Server.Response, allocator: std.mem.Allocat
     response.status = .not_found;
     try response.do();
     try response.finish();
+}
+
+const SESSION_TIMEOUT_SECS: i64 = 3600;
+
+fn pruneSessions(sessions: *std.ArrayList(Session)) void {
+    var idx: usize = 0;
+
+    while (idx < sessions.items.len) {
+        const now = std.time.timestamp();
+        const then = sessions.items[idx].creationTime;
+
+        if (now - then > SESSION_TIMEOUT_SECS) {
+            _ = sessions.orderedRemove(idx);
+        } else {
+            idx += 1;
+        }
+    }
 }
