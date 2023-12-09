@@ -7,17 +7,30 @@ const CheesleError = error{
 
 const Args = [][:0]u8;
 
+const State = struct {
+    gpa: std.mem.Allocator,
+    sessions: std.ArrayList(Session),
+    server: std.http.Server,
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(gpa.deinit() == .ok);
 
-    const allocator = gpa.allocator();
+    var state = State{
+        .gpa = gpa.allocator(),
+        .sessions = undefined,
+        .server = undefined,
+    };
 
-    var server = std.http.Server.init(allocator, .{ .reuse_address = true });
-    defer server.deinit();
+    state.sessions = std.ArrayList(Session).init(state.gpa);
+    defer state.sessions.deinit();
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    state.server = std.http.Server.init(state.gpa, .{ .reuse_address = true });
+    defer state.server.deinit();
+
+    const args = try std.process.argsAlloc(state.gpa);
+    defer std.process.argsFree(state.gpa, args);
 
     if (args.len != 3) {
         printUsage(args);
@@ -36,14 +49,14 @@ pub fn main() !void {
         return err;
     };
 
-    try server.listen(address);
+    try state.server.listen(address);
 
     {
         const out = std.io.getStdOut().writer();
         out.print("Listening on {}\n", .{address}) catch {};
     }
 
-    try runServer(&server, allocator);
+    try runServer(&state);
 }
 
 fn printUsage(args: Args) void {
@@ -51,17 +64,17 @@ fn printUsage(args: Args) void {
     out.print("Usage: {s} <host> <port>\n", .{args[0]}) catch {};
 }
 
-fn runServer(server: *std.http.Server, allocator: std.mem.Allocator) !void {
+fn runServer(state: *State) !void {
     const log = std.io.getStdErr().writer();
 
-    var sessions = std.ArrayList(Session).init(allocator);
+    var sessions = std.ArrayList(Session).init(state.gpa);
     defer sessions.deinit();
 
     while (true) {
         pruneSessions(&sessions);
 
-        var response = try server.accept(.{
-            .allocator = allocator,
+        var response = try state.server.accept(.{
+            .allocator = state.gpa,
         });
 
         defer response.deinit();
@@ -73,7 +86,7 @@ fn runServer(server: *std.http.Server, allocator: std.mem.Allocator) !void {
                 else => return err,
             };
 
-            handleRequest(&response, &sessions, allocator) catch |err| {
+            handleRequest(state, &response) catch |err| {
                 log.print("Server error: {}\n", .{err}) catch {};
             };
         }
@@ -126,7 +139,7 @@ const Session = struct {
     }
 };
 
-fn handleRequest(response: *std.http.Server.Response, sessions: *std.ArrayList(Session), allocator: std.mem.Allocator) !void {
+fn handleRequest(state: *State, response: *std.http.Server.Response) !void {
     if (response.request.headers.contains("connection")) {
         try response.headers.append("connection", "keep-alive");
     }
@@ -142,19 +155,19 @@ fn handleRequest(response: *std.http.Server.Response, sessions: *std.ArrayList(S
 
     if (std.mem.eql(u8, target, "/")) {
         const session = Session.new();
-        (try sessions.addOne()).* = session;
+        (try state.sessions.addOne()).* = session;
 
         const needle = "{%%%}";
-        const replacement = try std.fmt.allocPrint(allocator, "{}", .{session.id});
+        const replacement = try std.fmt.allocPrint(state.gpa, "{}", .{session.id});
 
         const index = @embedFile("index.html");
 
-        var buf = try allocator.alloc(u8, index.len + 1024);
-        defer allocator.free(buf);
+        var buf = try state.gpa.alloc(u8, index.len + 1024);
+        defer state.gpa.free(buf);
 
         const count = std.mem.replace(u8, index, needle, replacement, buf);
 
-        const end = index.len - needle.len + count * replacement.len;
+        const end = index.len + count * (replacement.len - needle.len);
         try sendFile(response, "text/html", buf[0..end]);
 
         return;
