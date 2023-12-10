@@ -1,36 +1,14 @@
 "use strict"
 
+const STATE_INPUT = 0;
+const STATE_WAITING = 1;
+const STATE_OVER = 2;
+
+let state = STATE_INPUT;
+
 const sessionId = document.getElementById("sessionId").value;
 
-const word = "CHEEZ";
 const letters = document.getElementsByClassName("letter");
-
-let attemptsLeft = 5;
-let over = false;
-
-function outputGuess(guess) {
-    const row = 5 - attemptsLeft;
-
-    if (row < 0) {
-        return;
-    }
-
-    const table = document.getElementById("wordle");
-
-    const tds = table.getElementsByTagName("td");
-
-    for (let col = 0; col < 5; col++) {
-        const td = tds[row * 5 + col];
-
-        td.textContent = guess[col];
-
-        if (word[col] == guess[col]) {
-            td.className = "correct";
-        } else {
-            td.className = "wrong";
-        }
-    }
-}
 
 function makeAGuess() {
     let guess = "";
@@ -40,28 +18,77 @@ function makeAGuess() {
         letter.value = "";
     }
 
-    let message;
-
-    if (over) {
+    if (state == STATE_OVER) {
         letters[0].focus();
         return;
     }
 
-    outputGuess(guess);
-    attemptsLeft--;
-
-    if (word == guess) {
-        message = "You won!";
-        over = true;
-    } else if (attemptsLeft == 0) {
-        message = "You used up all your attempts!";
-        over = true;
-    } else {
-        message = "You have " + attemptsLeft + " attempts left";
+    function disable() {
+        for (const letter of letters) {
+            letter.disabled = true;
+        }
     }
 
-    document.getElementById("status").textContent = message;
-    letters[0].focus();
+    function enable() {
+        for (const letter of letters) {
+            letter.disabled = false;
+        }
+    }
+
+    state = STATE_WAITING;
+    disable();
+
+    fetch("/guess", {
+        method: "POST",
+        body: JSON.stringify({
+            sessionId: sessionId,
+            word: guess,
+        }),
+    }).then(resp => resp.json()).then(data => {
+        const row = 4 - data.attemptsLeft;
+
+        if (row < 0) {
+            return;
+        }
+
+        const table = document.getElementById("wordle");
+        const tds = table.getElementsByTagName("td");
+
+        let message;
+
+        let allCorrect = true;
+
+        for (let col = 0; col < 5; col++) {
+            const td = tds[row * 5 + col];
+            td.textContent = guess[col];
+
+            if (data.lettersCorrect[col]) {
+                td.className = "correct";
+            } else {
+                td.className = "wrong";
+                allCorrect = false;
+            }
+        }
+
+        if (allCorrect) {
+            message = "You won!";
+            state = STATE_OVER;
+        } else if (data.attemptsLeft == 0) {
+            message = "You lost! No more attempts left!";
+            state = STATE_OVER;
+        } else {
+            message = "You have " + data.attemptsLeft + " attempts left";
+            state = STATE_INPUT;
+            enable();
+        }
+
+        document.getElementById("status").textContent = message;
+    }).catch(() => {
+        state = STATE_INPUT;
+        enable();
+    }).finally(() => {
+        letters[0].focus();
+    });
 }
 
 function mergeLetterInputFields() {
