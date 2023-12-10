@@ -9,7 +9,23 @@ let state = STATE_INPUT;
 const sessionId = document.getElementById("session-id").value;
 const letters = document.getElementsByClassName("letter");
 
+function disableInputs() {
+    for (const letter of letters) {
+        letter.disabled = true;
+    }
+}
+
+function enableInputs() {
+    for (const letter of letters) {
+        letter.disabled = false;
+    }
+
+    letters[0].focus();
+}
+
 function cheese(attemptsLeft) {
+    disableInputs();
+
     const eerieText = document.getElementById("eerie-text");
 
     if (attemptsLeft == 0) {
@@ -20,12 +36,16 @@ function cheese(attemptsLeft) {
 
     const container = document.getElementById("cheese-container");
 
-    container.classList.add("pandora-box-open");
     // TODO: play some kind of sound?
+    container.classList.add("pandora-box-open");
 
-    setTimeout(() => {
-        container.classList.remove("pandora-box-open");
-    }, 1000);
+    container.addEventListener('animationend', function () {
+        container.classList.remove('pandora-box-open');
+
+        if (state != STATE_OVER) {
+            enableInputs();
+        }
+    }, { once: true });
 }
 
 function makeAGuess() {
@@ -41,20 +61,8 @@ function makeAGuess() {
         return;
     }
 
-    function disable() {
-        for (const letter of letters) {
-            letter.disabled = true;
-        }
-    }
-
-    function enable() {
-        for (const letter of letters) {
-            letter.disabled = false;
-        }
-    }
-
     state = STATE_WAITING;
-    disable();
+    disableInputs();
 
     fetch("/guess", {
         method: "POST",
@@ -99,15 +107,12 @@ function makeAGuess() {
             message = "You have " + data.attemptsLeft + " attempts left";
             state = STATE_INPUT;
             cheese(data.attemptsLeft);
-            enable();
         }
 
         document.getElementById("status").textContent = message;
     }).catch(() => {
         state = STATE_INPUT;
-        enable();
-    }).finally(() => {
-        letters[0].focus();
+        enableInputs();
     });
 }
 

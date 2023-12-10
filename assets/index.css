@@ -105,7 +105,7 @@ input#session-id {
 }
 
 div#cheese-container {
-    visibility: hidden;
+    opacity: 0;
 
     background: black;
 
@@ -122,7 +122,11 @@ div#cheese-container {
 }
 
 div#cheese-container.pandora-box-open {
-    visibility: visible;
+    opacity: 1;
+}
+
+div#cheese-container.pandora-box-open img#cheese {
+    animation: cheesed 2s linear forwards;
 }
 
 div#cheese-ubercontainer {
@@ -154,4 +158,20 @@ span#eerie-text {
     text-align: center;
 
     font-size: 7vmin;
+
+    z-index: 100;
+}
+
+@keyframes cheesed {
+    0%, 10% {
+        opacity: 0;
+    }
+
+    30%, 80% {
+        opacity: 1;
+    }
+
+    90%, 100% {
+        opacity: 0;
+    }
 }
