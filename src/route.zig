@@ -6,6 +6,8 @@ const respond = @import("respond.zig");
 const State = root.State;
 const Response = std.http.Server.Response;
 
+pub const FILE_SIZE_LIMIT_BYTES = 2 * 1024 * 1024; // 2 MB should be enough
+
 pub fn Route(comptime Self: type, comptime matchFn: *const fn (*const Self, *const State, *const Response) anyerror!bool, comptime handleFn: *const fn (*const Self, *State, *Response) anyerror!void) type {
     return struct {
         const Pointer = *const Self;
@@ -52,7 +54,7 @@ pub const FileRoute = struct {
         var file = try std.fs.cwd().openFile(self.path, .{});
         defer file.close();
 
-        const buf = try file.reader().readAllAlloc(state.gpa, 10240);
+        const buf = try file.reader().readAllAlloc(state.gpa, FILE_SIZE_LIMIT_BYTES);
         defer state.gpa.free(buf);
 
         return respond.file(response, self.mimeType, buf);

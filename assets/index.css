@@ -100,6 +100,32 @@ input.letter {
     border-radius: 5px;
 }
 
-input#sessionId {
+input#session-id {
     display: none;
+}
+
+div#cheese-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    pointer-events: none;
+}
+
+img#cheese {
+    visibility: hidden;
+
+    width: 100vmin;
+    height: auto;
+}
+
+div#cheese-container.pandora-box-open > img#cheese {
+    visibility: visible;
 }

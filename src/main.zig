@@ -134,5 +134,10 @@ fn handleRequest(state: *State, response: *std.http.Server.Response) !void {
             .mimeType = "text/javascript",
             .path = "assets/index.js",
         },
+        route.FileRoute{
+            .target = "/assets/CHEESED.png",
+            .mimeType = "image/png",
+            .path = "assets/CHEESED.png",
+        },
     });
 }

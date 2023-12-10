@@ -6,9 +6,19 @@ const STATE_OVER = 2;
 
 let state = STATE_INPUT;
 
-const sessionId = document.getElementById("sessionId").value;
-
+const sessionId = document.getElementById("session-id").value;
 const letters = document.getElementsByClassName("letter");
+
+function cheese() {
+    const container = document.getElementById("cheese-container");
+
+    container.classList.add("pandora-box-open");
+    // TODO: play some kind of sound?
+
+    setTimeout(() => {
+        container.classList.remove("pandora-box-open");
+    }, 1000);
+}
 
 function makeAGuess() {
     let guess = "";
@@ -76,9 +86,11 @@ function makeAGuess() {
         } else if (data.attemptsLeft == 0) {
             message = "You lost! No more attempts left!";
             state = STATE_OVER;
+            cheese();
         } else {
             message = "You have " + data.attemptsLeft + " attempts left";
             state = STATE_INPUT;
+            cheese();
             enable();
         }
 
@@ -113,7 +125,7 @@ function mergeLetterInputFields() {
             }
 
             letters[i].value = ev.key.toUpperCase();
-            typeHandler();
+            typeHandler(ev);
         };
     }
 
@@ -122,12 +134,12 @@ function mergeLetterInputFields() {
     for (idx = 0; idx < 4; idx++) {
         const i = idx;
 
-        letters[i].addEventListener("keydown", makeHandler(i, (ev) => {
+        letters[i].addEventListener("keydown", makeHandler(i, () => {
             letters[i + 1].focus();
         }));
     }
 
-    letters[idx].addEventListener("keydown", makeHandler(idx, (ev) => {
+    letters[idx].addEventListener("keydown", makeHandler(idx, () => {
         makeAGuess();
     }));
 }
