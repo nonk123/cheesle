@@ -72,5 +72,5 @@ pub fn handle(state: *root.State, response: *std.http.Server.Response) !void {
     const count = std.mem.replace(u8, index, needle, replacement, buf);
     const end = index.len + count * (replacement.len - needle.len);
 
-    try respond.file(response, "text/html", buf[0..end]);
+    try respond.wholeFile(response, "text/html", buf[0..end]);
 }

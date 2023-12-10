@@ -7,7 +7,7 @@ pub fn notFound(response: *Response) !void {
     try response.do();
 }
 
-pub fn file(response: *Response, mimeType: []const u8, contents: []const u8) !void {
+pub fn wholeFile(response: *Response, mimeType: []const u8, contents: []const u8) !void {
     response.status = .ok;
     response.transfer_encoding = .chunked;
 
@@ -19,5 +19,5 @@ pub fn file(response: *Response, mimeType: []const u8, contents: []const u8) !vo
 }
 
 pub fn json(response: *Response, contents: []const u8) !void {
-    return file(response, "application/json", contents);
+    return wholeFile(response, "application/json", contents);
 }
