@@ -14,7 +14,7 @@ pub fn randomWord() []const u8 {
     const wordlist = comptime @embedFile("wordlist/valid-wordle-words.txt");
     const wordCount = comptime wordlist.len / 6;
 
-    const wordIdx: usize = PRNG.next() % wordCount;
+    const wordIdx = PRNG.random().intRangeLessThan(usize, 0, wordCount);
 
     const start = wordIdx * 6;
     const end = start + 5;
