@@ -9,7 +9,15 @@ let state = STATE_INPUT;
 const sessionId = document.getElementById("session-id").value;
 const letters = document.getElementsByClassName("letter");
 
-function cheese() {
+function cheese(attemptsLeft) {
+    const eerieText = document.getElementById("eerie-text");
+
+    if (attemptsLeft == 0) {
+        eerieText.textContent = "YOU LOST";
+    } else {
+        eerieText.textContent = attemptsLeft + " ATTEMPTS REMAIN";
+    }
+
     const container = document.getElementById("cheese-container");
 
     container.classList.add("pandora-box-open");
@@ -86,11 +94,11 @@ function makeAGuess() {
         } else if (data.attemptsLeft == 0) {
             message = "You lost! No more attempts left!";
             state = STATE_OVER;
-            cheese();
+            cheese(0);
         } else {
             message = "You have " + data.attemptsLeft + " attempts left";
             state = STATE_INPUT;
-            cheese();
+            cheese(data.attemptsLeft);
             enable();
         }
 

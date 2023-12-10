@@ -105,9 +105,11 @@ input#session-id {
 }
 
 div#cheese-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    visibility: hidden;
+
+    background: black;
+
+    display: grid;
 
     position: fixed;
     top: 0;
@@ -119,13 +121,37 @@ div#cheese-container {
     pointer-events: none;
 }
 
-img#cheese {
-    visibility: hidden;
+div#cheese-container.pandora-box-open {
+    visibility: visible;
+}
 
+div#cheese-ubercontainer {
+    grid-area: 1 / 1;
+
+    width: 100vw;
+    height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+img#cheese {
     width: 100vmin;
     height: auto;
 }
 
-div#cheese-container.pandora-box-open > img#cheese {
-    visibility: visible;
+span#eerie-text {
+    grid-area: 1 / 1;
+
+    color: red;
+    background: transparent;
+
+    width: 100vw;
+    height: 100vh;
+
+    line-height: 100vh;
+    text-align: center;
+
+    font-size: 7vmin;
 }
