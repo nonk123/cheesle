@@ -133,7 +133,6 @@ function mergeLetterInputFields() {
 }
 
 function init() {
-    document.getElementById("status").textContent = "Session: " + sessionId;
     mergeLetterInputFields();
     letters[0].focus();
 }

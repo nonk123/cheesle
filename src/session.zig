@@ -59,13 +59,16 @@ pub fn handle(state: *root.State, response: *std.http.Server.Response) !void {
     const needle = "{%%%}";
     const replacement = try std.fmt.allocPrint(state.gpa, "{}", .{session.id});
 
-    const index = @embedFile("index.html");
+    var file = try std.fs.cwd().openFile("assets/index.html", .{});
+    defer file.close();
+
+    const index = try file.reader().readAllAlloc(state.gpa, 10240);
+    defer state.gpa.free(index);
 
     var buf = try state.gpa.alloc(u8, index.len + 1024);
     defer state.gpa.free(buf);
 
     const count = std.mem.replace(u8, index, needle, replacement, buf);
-
     const end = index.len + count * (replacement.len - needle.len);
 
     try respond.file(response, "text/html", buf[0..end]);

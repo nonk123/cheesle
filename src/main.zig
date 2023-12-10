@@ -5,6 +5,7 @@ const uuid = @import("uuid");
 const session = @import("session.zig");
 const respond = @import("respond.zig");
 const guess = @import("guess.zig");
+const route = @import("route.zig");
 
 pub const State = struct {
     gpa: std.mem.Allocator,
@@ -103,53 +104,32 @@ fn runServer(state: *State) !void {
     }
 }
 
-const FileRoute = struct {
-    target: []const u8,
-    mimeType: []const u8,
-    contents: []const u8,
-
-    fn new(comptime target: []const u8, mimeType: []const u8) FileRoute {
-        // Strip the leading slash to avoid looking into the filesystem root.
-        const contents = @embedFile(target[1..]);
-
-        return FileRoute{
-            .target = target,
-            .mimeType = mimeType,
-            .contents = contents,
-        };
-    }
-};
-
 fn handleRequest(state: *State, response: *std.http.Server.Response) !void {
-    if (response.request.headers.contains("connection")) {
-        try response.headers.append("connection", "keep-alive");
-    }
-
-    const method = response.request.method;
-    const target = response.request.target;
-
-    if (method == .GET and std.mem.eql(u8, target, "/")) {
-        try session.handle(state, response);
-        return;
-    }
-
-    if (method == .POST and std.mem.eql(u8, target, "/guess")) {
-        try guess.handle(state, response);
-        return;
-    }
-
-    const routes = comptime [_]FileRoute{
-        FileRoute.new("/favicon.ico", "image/vnd.microsoft.icon"),
-        FileRoute.new("/index.css", "text/css"),
-        FileRoute.new("/index.js", "text/javascript"),
-    };
-
-    inline for (routes) |route| {
-        if (method == .GET and std.mem.eql(u8, route.target, target)) {
-            try respond.file(response, route.mimeType, route.contents);
-            return;
-        }
-    }
-
-    try respond.notFound(response);
+    try route.handleRoutes(state, response, .{
+        route.StaticRoute{
+            .target = "/",
+            .method = .GET,
+            .handler = session.handle,
+        },
+        route.StaticRoute{
+            .target = "/guess",
+            .method = .POST,
+            .handler = guess.handle,
+        },
+        route.FileRoute{
+            .target = "/assets/favicon.ico",
+            .mimeType = "image/vnd.microsoft.icon",
+            .path = "assets/favicon.ico",
+        },
+        route.FileRoute{
+            .target = "/assets/index.css",
+            .mimeType = "text/css",
+            .path = "assets/index.css",
+        },
+        route.FileRoute{
+            .target = "/assets/index.js",
+            .mimeType = "text/javascript",
+            .path = "assets/index.js",
+        },
+    });
 }
