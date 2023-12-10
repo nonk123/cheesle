@@ -6,6 +6,7 @@ const session = @import("session.zig");
 const respond = @import("respond.zig");
 const guess = @import("guess.zig");
 const route = @import("route.zig");
+const wordlist = @import("wordlist.zig");
 
 pub const State = struct {
     gpa: std.mem.Allocator,
@@ -20,6 +21,8 @@ const CheesleError = error{
 const Args = [][:0]u8;
 
 pub fn main() !void {
+    try wordlist.initPRNG();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(gpa.deinit() == .ok);
 

@@ -68,7 +68,10 @@ pub fn handle(state: *root.State, response: *Response) !void {
     var allCorrect = true;
 
     for (0..5) |idx| {
-        const correct = guess.word[idx] == session.word[idx];
+        const guessedLetter = std.ascii.toUpper(guess.word[idx]);
+        const correctLetter = std.ascii.toUpper(session.word[idx]);
+
+        const correct = guessedLetter == correctLetter;
         resp.lettersCorrect[idx] = correct;
 
         if (!correct) {

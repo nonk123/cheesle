@@ -4,6 +4,7 @@ const uuid = @import("uuid");
 
 const root = @import("root");
 const respond = @import("respond.zig");
+const wordlist = @import("wordlist.zig");
 
 const SESSION_TIMEOUT_SECS: i64 = 3600;
 
@@ -17,7 +18,7 @@ pub const Session = struct {
     fn new() Session {
         return Session{
             .id = uuid.UUID.init(),
-            .word = "CHEEZ",
+            .word = wordlist.randomWord(),
             .attemptsLeft = 5,
             .won = false,
             .creationTime = std.time.timestamp(),

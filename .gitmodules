@@ -1,3 +1,6 @@
 [submodule "external/zig-uuid"]
 	path = external/zig-uuid
 	url = https://github.com/dmgk/zig-uuid.git
+[submodule "wordlist"]
+	path = src/wordlist
+	url = https://gist.github.com/dd0668f281e685bad51479e5acaadb93.git
